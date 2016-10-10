@@ -69,3 +69,30 @@ def generate_samples(model, get_mu_sigma,
 
     X0 = Xmid
     viz.plot_images(X0, base_fname_part1 + '_t%04d'%0 + base_fname_part2)
+
+
+def inpaint_masked_samples(model, get_mu_sigma, X_true, mask, seed=12345):
+    """
+    Run the reverse diffusion process on the masked areas (inpainting).
+    """
+    # use the same noise in the samples every time, so they're easier to
+    # compare across learning
+    rng = np.random.RandomState(seed)
+
+    n_samples = X_true.shape[0]
+    spatial_width = model.spatial_width
+    n_colors = model.n_colors
+
+    # set the initial state X^T of the reverse trajectory
+    XT = rng.normal(size=(n_samples,n_colors,spatial_width,spatial_width))
+
+    XT.flat[mask] = X_true.flat[mask]
+    # base_fname_part1 += '_inpaint'
+    Xmid = XT.copy()
+    for t in xrange(model.trajectory_length-1, 0, -1):
+        Xmid = diffusion_step(Xmid, t, get_mu_sigma, None, mask, XT, rng)
+            
+
+    X0 = Xmid
+    
+    return X0

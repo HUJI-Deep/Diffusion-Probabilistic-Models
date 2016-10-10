@@ -71,7 +71,7 @@ if __name__ == '__main__':
 
     if args.resume_file is not None:
         print "Resuming training from " + args.resume_file
-        from blocks.scripts import continue_training
+        from blocks.serialization import continue_training
         continue_training(args.resume_file)
 
     ## load the training data
@@ -151,20 +151,20 @@ if __name__ == '__main__':
 
     ## logging of test set performance
     extension_list.append(extensions.LogLikelihood(dpm, test_stream, scl,
-        every_n_batches=args.ext_every_n*batches_per_epoch, before_training=False))
+        every_n_epochs=args.ext_every_n, before_training=False))
 
     ## set up logging
     extension_list.extend([Timing(), Printing()])
     model_dir = util.create_log_dir(args, dpm.name + '_' + args.dataset)
     model_save_name = os.path.join(model_dir, 'model.pkl')
     extension_list.append(
-        Checkpoint(model_save_name, every_n_batches=args.ext_every_n*batches_per_epoch, save_separately=['log']))
+        Checkpoint(model_save_name, every_n_epochs=args.ext_every_n, save_separately=['log']))
     # generate plots
     extension_list.append(extensions.PlotMonitors(model_dir,
-        every_n_batches=args.ext_every_n*batches_per_epoch, before_training=args.plot_before_training))
+        every_n_epochs=args.ext_every_n, before_training=args.plot_before_training))
     test_batch = next(test_stream.get_epoch_iterator())[0]
     extension_list.append(extensions.PlotSamples(dpm, algorithm, test_batch, model_dir,
-        every_n_batches=args.ext_every_n*batches_per_epoch, before_training=args.plot_before_training))
+        every_n_epochs=args.ext_every_n, before_training=args.plot_before_training))
     internal_state = dpm.internal_state(features)
     train_batch = next(train_stream.get_epoch_iterator())[0]
     # extension_list.append(
@@ -172,7 +172,7 @@ if __name__ == '__main__':
     #         every_n_batches=args.ext_every_n*batches_per_epoch, before_training=args.plot_before_training))
     extension_list.append(
         extensions.PlotParameters(dpm, blocks_model, model_dir,
-            every_n_batches=args.ext_every_n*batches_per_epoch, before_training=args.plot_before_training))
+            every_n_epochs=args.ext_every_n, before_training=args.plot_before_training))
     # extension_list.append(
     #     extensions.PlotGradients(dpm, blocks_model, algorithm, train_batch, model_dir,
     #         every_n_batches=args.ext_every_n*batches_per_epoch, before_training=args.plot_before_training))
