@@ -14,7 +14,7 @@ To train on NORB- after installing all dependencies, run ``python train_norb.py 
 ``path/to/data_dir/norb_small_2D_test_image_data``
 
 Inpainting images with missing data locations given by a mask image is meant to be used with a dataset in
-the format created by the script generate_missing_norb_data XXX link.!!
+the format created by this [script](https://github.com/HUJI-Deep/TMM/blob/master/exp/norb_small/generate_norb_small_missing_data.py).
 
 The missing data dataset should have one `index.txt` file listing each corrupted image file with its label in Caffe ImageData format, and one `index_mask.txt` file in the same format listing the mask file corresponding to each
 corrupted image file.
