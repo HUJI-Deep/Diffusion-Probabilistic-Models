@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 Use trained model to apply inpainting to dataset with missing data.
 
@@ -13,41 +15,17 @@ import numpy as np
 import os
 import sys
 from os.path import join
-import warnings
 import progressbar
 import PIL.Image
-from scipy.misc import imsave
-import theano
-import theano.tensor as T
-from theano.tensor.shared_randomstreams import RandomStreams
+from scipy.misc import toimage
 
-from blocks.algorithms import (RMSProp, GradientDescent, CompositeRule,
-    RemoveNotFinite)
-from blocks.extensions import FinishAfter, Timing, Printing
-from blocks.extensions.monitoring import (TrainingDataMonitoring,
-                                          DataStreamMonitoring)
-from blocks.extensions.saveload import Checkpoint
-from blocks.extensions.training import SharedVariableModifier
-from blocks.filter import VariableFilter
-from blocks.graph import ComputationGraph, apply_dropout
-from blocks.main_loop import MainLoop
-import blocks.model
-from blocks.roles import INPUT, PARAMETER
-
-from fuel.streams import DataStream
-from fuel.schemes import ShuffledScheme
-from fuel.transformers import Flatten, ScaleAndShift
-
-import extensions
-import model
-import util
 from sampler import inpaint_masked_samples
 
 from theano.misc import pkl_utils
 
-def save_single_image(x, (h,w), save_dir, save_name ): 
+def save_single_image(x, save_dir, save_name ): 
+    toimage(x, cmin=0.0, cmax=1.0).save(join(save_dir,save_name))
 
-    imsave(join(save_dir,save_name), x)
 
 def load_image(path, scale=255.0):
     return np.float32(PIL.Image.open(path)) / scale
@@ -92,6 +70,8 @@ if __name__ == '__main__':
     args = parse_args()
     db_dir = args.missing_dataset_path 
     new_db_path = db_dir+'_dpm_ip'
+    if not os.path.exists(new_db_path):
+        os.mkdir(new_db_path)
     
     batch_size = args.batch_size
     mnist_size = (28,28)
@@ -101,10 +81,6 @@ if __name__ == '__main__':
     with open(args.resume_file, "rb") as f:
         main_loop = load(f)
 
-
-        print main_loop
-        print main_loop.extensions[7]
-
         plot_samples_ext = main_loop.extensions[7]
         get_mu_sigma = plot_samples_ext.get_mu_sigma 
         dpm = plot_samples_ext.model
@@ -112,8 +88,6 @@ if __name__ == '__main__':
         input_h = dpm.spatial_width
         input_w = dpm.spatial_width
 
-
-        
         raw_im_data = np.loadtxt(os.path.join(db_dir,'index.txt'),delimiter=' ',dtype=str)
         
         print "Loading images to inpaint..."
@@ -131,9 +105,6 @@ if __name__ == '__main__':
         N = raw_im_data.shape[0]
         n_batches = N / batch_size
 
-        if not os.path.exists(new_db_path):
-            os.mkdir(new_db_path)
-
         pbar = progressbar.ProgressBar(widgets=[progressbar.FormatLabel('\rProcessed %(value)d of %(max)d Batches '), progressbar.Bar()], maxval=n_batches, term_width=50).start()
         with open(join(new_db_path,'index.txt'),'wb') as db_file:
             for b in np.arange(n_batches):
@@ -144,7 +115,7 @@ if __name__ == '__main__':
                 for idx in np.arange(batch_size):
                     abs_idx = (b*batch_size)+idx
                     save_name = raw_im_data[abs_idx][0].replace('corrupted','ip')
-                    save_single_image(X0[idx,0,:,:], mnist_size, new_db_path,save_name)
+                    save_single_image(X0[idx,0,:,:], new_db_path,save_name)
                     db_file.write('%s %s\n' % ( save_name, raw_im_data[abs_idx][1]))
 
                 pbar.update(b)
